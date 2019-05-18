@@ -6,6 +6,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "common.h"
+
 extern int g_close;
 
 void *handle_server(void *port)
@@ -25,20 +27,24 @@ void *handle_server(void *port)
 	addr.sin_family = AF_INET;
 	// Constant for setting socket options
 	int yes = 1;
+	//Variable for storing various results for error-checking
+	int res = 0;
 
 	// Enable port and address reuse
-	setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-	setsockopt(server_sock, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes));
+	CHECK_ERROR(res, setsockopt(server_sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)), "Server SO_REUSEADDR error")
+	CHECK_ERROR(res, setsockopt(server_sock, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes)), "Server SO_REUSEPORT error")
 
 	// Bind the server socket and start listening
-	bind(server_sock, (struct sockaddr *) &addr, sizeof(addr));
-	listen(server_sock, 1024);
+	CHECK_ERROR(res, bind(server_sock, (struct sockaddr *) &addr, sizeof(addr)), "Server socket binding error")
+	CHECK_ERROR(res, listen(server_sock, 1024), "Server socket listening error")
 
 	// Add the server socket to the listening set
 	FD_SET(server_sock, &clients);
 	maxSocket = server_sock;
 	struct timeval timeout;
 	timeout.tv_sec = 5;
+
+	printf("Server initialized");
 
 	// Main server loop
 	while (g_close == 0)
@@ -50,7 +56,9 @@ void *handle_server(void *port)
 
 		// TODO: Pollfd might be potentially more efficient, but it requires implementing a vector for the clients
 		// Should be good enough for now.
-		int ready = select(maxSocket + 1, &read_mask, NULL, NULL, &timeout);
+		int ready;
+
+		CHECK_ERROR(ready, select(maxSocket + 1, &read_mask, NULL, NULL, &timeout), "Server select() error")
 
 		for (int c = 0; c <= maxSocket && ready > 0; ++c)
 		{
@@ -61,7 +69,8 @@ void *handle_server(void *port)
 					// New connections inbound, accept them
 					// TODO: Small race condition here - client can drop connection between select() and accept()
 					//  meaning that the accept() will block.
-					int client_sock = accept(server_sock, NULL, NULL);
+					int client_sock;
+					CHECK_ERROR(client_sock, accept(server_sock, NULL, NULL), "Server client connection error")
 					FD_SET(client_sock, &clients);
 					if (client_sock > maxSocket)
 						maxSocket = client_sock;
@@ -75,8 +84,11 @@ void *handle_server(void *port)
 					int bytes = read(c, buf, sizeof(buf));
 					if (bytes <= 0)
 					{
-						printf("Server: Socket %d disconnected\n", c);
-						// Connection closed or broken
+						// Connection closed
+						if (bytes == -1)
+							error("Socket read error");
+						else
+							printf("Server: Socket %d disconnected\n", c);
 						FD_CLR(c, &clients);
 						connection_closed = 1;
 					}

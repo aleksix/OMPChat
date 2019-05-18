@@ -4,16 +4,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 
-extern int g_close;
+#include "common.h"
 
-int error(char *text)
-{
-	printf("%s %d: %s", text, errno, strerror(errno));
-	return 1;
-}
+extern int g_close;
 
 int handle_client(int ip, int port)
 {
@@ -44,13 +39,8 @@ int handle_client(int ip, int port)
 	addr.sin_port = port;
 
 	// Try to connect to the server
-	res = connect(sock, (struct sockaddr *) &addr, sizeof(addr));
+	CHECK_ERROR(res, connect(sock, (struct sockaddr *) &addr, sizeof(addr)), "Connection error")
 
-	if (res < 0)
-	{
-		error("Connection error");
-		return 1;
-	}
 
 	printf("Successfully connected to the server\n");
 
@@ -68,13 +58,7 @@ int handle_client(int ip, int port)
 	{
 		FD_SET(sock, &read_info);
 		FD_SET(fd_stdin, &read_info);
-		res = select(max_fd + 1, &read_info, NULL, NULL, NULL);
-
-		if (res < 0)
-		{
-			error("Input error");
-			return 1;
-		}
+		CHECK_ERROR(res, select(max_fd + 1, &read_info, NULL, NULL, NULL), "Input error")
 
 		if (FD_ISSET(sock, &read_info) == 1)
 		{
@@ -98,13 +82,8 @@ int handle_client(int ip, int port)
 		if (FD_ISSET(fd_stdin, &read_info) == 1)
 		{
 			// We have info to send on the socket
-			int buf_len = read(fd_stdin, write_buf + name_len, sizeof(write_buf) - name_len);
-
-			if (buf_len < 0)
-			{
-				error("Keyboard error");
-				return 1;
-			}
+			int buf_len;
+			CHECK_ERROR(buf_len, read(fd_stdin, write_buf + name_len, sizeof(write_buf) - name_len), "Keyboard error")
 
 			memcpy(write_buf, name, name_len);
 			buf_len += name_len;
