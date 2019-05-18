@@ -14,17 +14,17 @@ int g_close = 0;
 
 int display_usage(const char *error)
 {
-	if (error != NULL)
-		printf("ERROR: %s\n\n", error);
-
 	printf("USAGE: OMPChat [-h] [-s]\n");
 	// TODO: change to actual explanation
 	printf("PLACEHOLDER EXPLANATION\n");
 	printf("Arguments:\n");
 	printf("-h, --help\t show this message\n");
 	printf("-s, --server\t start as a server\n");
-	printf("-i, --ip\t (as a client) set the ip of the server");
-	printf("-p, --port\t (as a server) Choose the server port. (as a client) Specify the port on which to connect");
+	printf("-i, --ip\t (as a client) set the ip of the server\n");
+	printf("-p, --port\t (as a server) Choose the server port. (as a client) Specify the port on which to connect\n");
+
+	if (error != NULL)
+		printf("ERROR: %s\n\n", error);
 
 	// Most often we'll want to return after showing the usage
 	return 1;
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
 			{"port",   required_argument, NULL, 'p'},
 	};
 
-	int opt = getopt_long(argc, argv, "hs", options, &long_opt_index);
+	int opt = getopt_long(argc, argv, "hsi:p:", options, &long_opt_index);
 	unsigned char is_server = 0;
 	pthread_t server_listen_thread;
 	unsigned long ip = DEFAULT_IP;
