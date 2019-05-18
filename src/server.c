@@ -17,7 +17,7 @@ void *handle_server(void *port)
 	// fd_set for information from select()
 	fd_set read_mask;
 	// Maximum socket for select()
-	int maxSocket;
+	int max_socket;
 
 	int server_sock = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
@@ -40,11 +40,9 @@ void *handle_server(void *port)
 
 	// Add the server socket to the listening set
 	FD_SET(server_sock, &clients);
-	maxSocket = server_sock;
+	max_socket = server_sock;
 	struct timeval timeout;
 	timeout.tv_sec = 5;
-
-	printf("Server initialized");
 
 	// Main server loop
 	while (g_close == 0)
@@ -58,9 +56,9 @@ void *handle_server(void *port)
 		// Should be good enough for now.
 		int ready;
 
-		CHECK_ERROR(ready, select(maxSocket + 1, &read_mask, NULL, NULL, &timeout), "Server select() error")
+		CHECK_ERROR(ready, select(max_socket + 1, &read_mask, NULL, NULL, &timeout), "Server select() error")
 
-		for (int c = 0; c <= maxSocket && ready > 0; ++c)
+		for (int c = 0; c <= max_socket && ready > 0; ++c)
 		{
 			if (FD_ISSET(c, &read_mask))
 			{
@@ -72,19 +70,19 @@ void *handle_server(void *port)
 					int client_sock;
 					CHECK_ERROR(client_sock, accept(server_sock, NULL, NULL), "Server client connection error")
 					FD_SET(client_sock, &clients);
-					if (client_sock > maxSocket)
-						maxSocket = client_sock;
+					if (client_sock > max_socket)
+						max_socket = client_sock;
 					printf("Server: New connection on socket: %d\n", client_sock);
 				}
 				else
 				{
 					// Data on the client side
-					char buf[256];
+					char buf[BUF_SIZE];
 					connection_closed = 0;
 					int bytes = read(c, buf, sizeof(buf));
 					if (bytes <= 0)
 					{
-						// Connection closed
+						// Connection taken
 						if (bytes == -1)
 							error("Socket read error");
 						else
@@ -94,7 +92,7 @@ void *handle_server(void *port)
 					}
 					else
 					{
-						for (int c2 = 0; c2 <= maxSocket; ++c2)
+						for (int c2 = 0; c2 <= max_socket; ++c2)
 						{
 							if (FD_ISSET(c2, &clients) == 1 && c2 != server_sock)
 							{
@@ -105,9 +103,9 @@ void *handle_server(void *port)
 
 					if (connection_closed == 1)
 					{
-						if (c == maxSocket)
-							while (FD_ISSET(maxSocket, &clients) == 0)
-								--maxSocket;
+						if (c == max_socket)
+							while (FD_ISSET(max_socket, &clients) == 0)
+								--max_socket;
 					}
 				}
 				--ready;

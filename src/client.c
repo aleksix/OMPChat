@@ -5,8 +5,13 @@
 #include <netinet/in.h>
 #include <string.h>
 #include <unistd.h>
+#include <termios.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #include "common.h"
+
+#define CLIENT_NAME_MAX 128
 
 extern int g_close;
 
@@ -14,19 +19,18 @@ int handle_client(int ip, int port)
 {
 	// Buffers
 	// Buffer for reading from the keyboard
-	char write_buf[256];
+	char write_buf[BUF_SIZE];
 	// Buffer for writing to the socket
-	char read_buf[256];
-	// Name buffer
-	char name[128];
+	char read_buf[BUF_SIZE];
 	int name_len;
+	char client_name[CLIENT_NAME_MAX];
 	// Get and prepare a name for showing
 	printf("Enter your nickname: ");
-	scanf("%s", name);
-	name[strlen(name) + 1] = 0;
-	name[strlen(name)] = ':';
+	scanf("%s", client_name);
+	client_name[strlen(client_name) + 1] = 0;
+	client_name[strlen(client_name)] = ':';
 
-	name_len = strlen(name);
+	name_len = strlen(client_name);
 
 	// Variable for storing different results for error-checking
 	int res = 0;
@@ -67,7 +71,7 @@ int handle_client(int ip, int port)
 			if (buf_read == 0)
 			{
 				g_close = 1;
-				printf("Connection closed.\n");
+				printf("Connection taken.\n");
 				return 1;
 			}
 			else if (buf_read == -1)
@@ -85,7 +89,7 @@ int handle_client(int ip, int port)
 			int buf_len;
 			CHECK_ERROR(buf_len, read(fd_stdin, write_buf + name_len, sizeof(write_buf) - name_len), "Keyboard error")
 
-			memcpy(write_buf, name, name_len);
+			memcpy(write_buf, client_name, name_len);
 			buf_len += name_len;
 			printf("\n");
 
