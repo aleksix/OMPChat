@@ -7,8 +7,11 @@ SOURCES = main.c client.c common.c server.c
 OBJECTS = $(SOURCES:.c=.o)
 HEADERS = client.h common.h server.h
 
-
 all: $(EXECUTABLE)
+
+install: all
+	mkdir -p $(DESTDIR)/usr/bin
+	install -m 755 ompchat $(DESTDIR)/usr/bin
 
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(OBJECTS) -o $(EXECUTABLE) $(LDFLAGS)
