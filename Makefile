@@ -13,7 +13,7 @@ pack:
 
 rpm: pack
 	mv $(SOURCES_NAME).tar.gz $(RPM_SOURCES_DIR)
-	mv rpm/$(SPEC) $(RPM_SPECS_DIR)
+	cp rpm/$(SPEC) $(RPM_SPECS_DIR)
 	rpmbuild -ba $(RPM_SPECS_DIR)/$(SPEC)
 
 clean:
