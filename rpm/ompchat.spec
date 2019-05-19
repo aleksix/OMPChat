@@ -1,3 +1,5 @@
+%define debug_package %{nil}
+
 Name: ompchat
 Version: 1.0
 Release: 1
@@ -15,10 +17,12 @@ Very simple client-server chat.
 %{make_build}
 
 %install
-%{make_install}
-
-%files
+%{make_build}
 
 %clean
+make clean
+
+%files
+%{_bindir}/ompchat
 
 %changelog
