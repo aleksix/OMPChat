@@ -6,6 +6,6 @@
 
 int error(char *text)
 {
-	printf("%s %d: %s", text, errno, strerror(errno));
+	printf("%s %d: %s\n", text, errno, strerror(errno));
 	return 1;
 }
