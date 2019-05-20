@@ -16,5 +16,8 @@ rpm: pack
 	cp rpm/$(SPEC) $(RPM_SPECS_DIR)
 	rpmbuild -ba $(RPM_SPECS_DIR)/$(SPEC)
 
+install: all
+	+$(MAKE) -C src install
+
 clean:
 	+$(MAKE) -C src clean
