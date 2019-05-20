@@ -44,63 +44,61 @@ int handle_client(int ip, int port)
 
 	// Try to connect to the server
 	CHECK_ERROR(res, connect(sock, (struct sockaddr *) &addr, sizeof(addr)), "Connection error")
-
-
 	printf("Successfully connected to the server\n");
 
 	// fd_set for select(). Contains the socket and the stdin
 	fd_set read_info;
-	int fd_stdin = STDIN_FILENO;
-
 	int max_fd = sock;
-	if (fd_stdin > max_fd)
-		max_fd = fd_stdin;
+	// Shoudn't be possible, but it's here just in case
+	if (STDIN_FILENO > max_fd)
+		max_fd = STDIN_FILENO;
+
+	memcpy(write_buf, client_name, name_len);
 
 	FD_ZERO(&read_info);
 
 	while (g_close == 0)
 	{
+		// fd_sets for select need to be reset every time
 		FD_SET(sock, &read_info);
-		FD_SET(fd_stdin, &read_info);
+		FD_SET(STDIN_FILENO, &read_info);
 		CHECK_ERROR(res, select(max_fd + 1, &read_info, NULL, NULL, NULL), "Input error")
 
 		if (FD_ISSET(sock, &read_info) == 1)
 		{
 			// We have info to read from the socket
 			int buf_read = read(sock, read_buf, sizeof(read_buf));
-			if (buf_read == 0)
+			if (buf_read <= 0)
 			{
+				if (buf_read == 0)
+					error("Connection closed");
+				else
+					error("Socket reading error");
 				g_close = 1;
-				printf("Connection taken.\n");
-				return 1;
-			}
-			else if (buf_read == -1)
-			{
-				g_close = 1;
-				error("Socket reading error");
 				return 1;
 			}
 			else
 				printf("%s\n", read_buf);
 		}
-		if (FD_ISSET(fd_stdin, &read_info) == 1)
+		if (FD_ISSET(STDIN_FILENO, &read_info) == 1)
 		{
 			// We have info to send on the socket
 			int buf_len;
-			CHECK_ERROR(buf_len, read(fd_stdin, write_buf + name_len, sizeof(write_buf) - name_len), "Keyboard error")
+			CHECK_ERROR(buf_len, read(STDIN_FILENO, write_buf + name_len, sizeof(write_buf) - name_len),
+						"Keyboard error")
 
-			memcpy(write_buf, client_name, name_len);
 			buf_len += name_len;
 			printf("\n");
 
-			// Remove newlines
+			// Remove the newline at the end
 			if (write_buf[buf_len - 1] == '\n')
 			{
 				write_buf[buf_len - 1] = 0;
 				--buf_len;
 			}
 
-			if (strcmp(write_buf, "exit") != 0)
+			// Check if the user wants to exit, send the message otherwise
+			if (strcmp(write_buf + name_len, "exit") != 0)
 			{
 				write(sock, write_buf, buf_len + 1);
 			}
@@ -112,6 +110,7 @@ int handle_client(int ip, int port)
 
 	close(sock);
 
+	// Again, shouldn't be possible, but it makes sense here anyway, since we turn off everything when the client exits
 	g_close = 1;
 	return 0;
 }

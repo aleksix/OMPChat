@@ -19,6 +19,9 @@ void *handle_server(void *port)
 	// Maximum socket for select()
 	int max_socket;
 
+	// Data on the client side
+	char buf[BUF_SIZE];
+
 	int server_sock = socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in addr;
 	memset(&addr, 0, sizeof(addr));
@@ -44,18 +47,21 @@ void *handle_server(void *port)
 	struct timeval timeout;
 	timeout.tv_sec = 5;
 
+	// Number of descriptors ready to be read
+	int ready;
+
+	// Whether the connection is closed or not
+	int connection_closed = 0;
+
 	// Main server loop
 	while (g_close == 0)
 	{
-		int connection_closed = 0;
-
 		// The read_mask needs to be reset properly every time
 		memcpy(&read_mask, &clients, sizeof(clients));
 
-		// TODO: Pollfd might be potentially more efficient, but it requires implementing a vector for the clients
-		// Should be good enough for now.
-		int ready;
-
+		// I'm somewhat sure that poll() and select() have roughly the same speed
+		// Also I failed to find an faster POSIX commands to do that, so I'm using select()
+		// Should change if we expect more than 1024(FD_SETSIZE) sockets/files in use.
 		CHECK_ERROR(ready, select(max_socket + 1, &read_mask, NULL, NULL, &timeout), "Server select() error")
 
 		for (int c = 0; c <= max_socket && ready > 0; ++c)
@@ -76,8 +82,7 @@ void *handle_server(void *port)
 				}
 				else
 				{
-					// Data on the client side
-					char buf[BUF_SIZE];
+					// Data from an existing connection
 					connection_closed = 0;
 					int bytes = read(c, buf, sizeof(buf));
 					if (bytes <= 0)
@@ -101,6 +106,7 @@ void *handle_server(void *port)
 						}
 					}
 
+					// If a connection was closed, recalculate the maximum socket
 					if (connection_closed == 1)
 					{
 						if (c == max_socket)
