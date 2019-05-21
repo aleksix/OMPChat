@@ -14,7 +14,7 @@ int g_close = 0;
 
 int display_usage(const char *error)
 {
-	printf("USAGE: OMPChat [-h] [-s]\n");
+	printf("USAGE: ompchat [-h] [-s] [-i] ip [-p] port\n");
 	printf("Simple server-client chat written as an exercise.\n");
 	printf("Arguments:\n");
 	printf("-h, --help\t show this message\n");
